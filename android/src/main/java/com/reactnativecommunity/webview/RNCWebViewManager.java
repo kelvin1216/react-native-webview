@@ -202,6 +202,10 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
 
         RNCWebViewModule module = getModule(reactContext);
 
+        if (url.startsWith("data:")) {  //skip when url is base64 encoded data
+          return;
+        }
+
         DownloadManager.Request request = new DownloadManager.Request(Uri.parse(url));
 
         String fileName = URLUtil.guessFileName(url, contentDisposition, mimetype);
