@@ -203,6 +203,54 @@ public class RNCWebViewManager extends SimpleViewManager<WebView> {
         RNCWebViewModule module = getModule(reactContext);
 
         if (url.startsWith("data:")) {  //skip when url is base64 encoded data
+          final String pureBase64Encoded = url.substring(url.indexOf(",")  + 1);
+          byte[] imageBytes=Base64.decode(pureBase64Encoded, Base64.DEFAULT);
+          InputStream is = new ByteArrayInputStream(imageBytes);
+          Bitmap bitmap= BitmapFactory.decodeStream(is);
+
+          long unixTime = System.currentTimeMillis() / 1000L;
+          OutputStream fos = null;
+
+          if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            ContentResolver resolver = reactContext.getContentResolver();
+            ContentValues contentValues = new ContentValues();
+            contentValues.put(MediaStore.MediaColumns.DISPLAY_NAME, String.format("qrCode_%d", unixTime));
+            contentValues.put(MediaStore.MediaColumns.MIME_TYPE, "image/png");
+            contentValues.put(MediaStore.MediaColumns.RELATIVE_PATH, "DCIM/" + "BK8");
+            Uri imageUri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues);
+            try {
+              fos = resolver.openOutputStream(imageUri);
+            } catch (FileNotFoundException e) {
+              e.printStackTrace();
+            }
+          } else {
+            String imagesDir = Environment.getExternalStoragePublicDirectory(
+              Environment.DIRECTORY_DCIM).toString() + File.separator + "BK8";
+
+            File file = new File(imagesDir);
+
+            if (!file.exists()) {
+              file.mkdir();
+            }
+
+            File image = new File(imagesDir, String.format("qrCode_%d.png", unixTime));
+            try {
+              fos = new FileOutputStream(image);
+            } catch (FileNotFoundException e) {
+              e.printStackTrace();
+            }
+          }
+
+          try {
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.flush();
+            fos.close();
+
+            Toast.makeText(reactContext, "QR code saved to photo gallery", Toast.LENGTH_LONG).show();
+          } catch (IOException e) {
+            e.printStackTrace();
+          }
+          
           return;
         }
 
